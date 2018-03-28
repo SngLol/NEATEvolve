@@ -1012,6 +1012,37 @@ end
 
 function writeFile(filename)
 	dofile("saveTable.lua")
+	local f io.open("tmp/delete.me", "w")
+	if f == nil then
+		os.execute( "mkdir tmp\\" )
+	end
+	if f then
+		f:close()
+		os.remove("tmp/delete.me")
+	end
+	local f io.open("backups/delete.me", "w")
+	if f == nil then
+		os.execute( "mkdir backups\\" )
+	end
+	if f then
+		f:close()
+		os.remove("tmp/delete.me")
+	end
+	assert( table.save( pool.species, "tmp/temp.species.lua" ) == nil )
+	if filename == "temp.pool" then
+		filename = "tmp/temp.pool"
+	else
+		filename = "backups/" .. filename
+		assert( table.save( pool.species, "backups/backup." .. pool.generation .. "." .. "species" ) == nil )
+	end
+	local file = io.open(filename, "w")
+	file:write(pool.generation .. "\n")
+	file:write(pool.maxFitness .. "\n")
+	file:close()
+end
+
+function saveFile(filename)
+	dofile("saveTable.lua")
 	assert( table.save( pool.species, "species.lua" ) == nil )
 	local file = io.open(filename, "w")
 	file:write(pool.generation .. "\n")
@@ -1021,7 +1052,7 @@ end
 
 function savePool()
 	local filename = forms.gettext(saveLoadFile)
-	writeFile(filename)
+	saveFile(filename)
 end
 
 function loadFile(filename)
