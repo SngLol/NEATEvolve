@@ -6,6 +6,10 @@ So I decided to lear some lua and make a more efficient save and load function.
 It now saves the whole pool.species table in a file called species.lua,
 but still uses the original save file for some other small but important values.
 
+Setup:
+Download "neatevolve.lua" and "saveTable.lua", and put them into the root folder of BizHawk (where EmuHawk.exe is located)
+Then drag neatevolve.lua into the emulator window after the game has been launched.
+
 In order to save multiple bot states you'll have to manually make a subfolder and copy
 neatevolve.lua, SMB1-1.state/DP1.state, and saveTable.lua into the folder.
 Then normally drag neatevolve into the emulator and you'll have a second bot state separate from the first one.
