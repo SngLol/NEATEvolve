@@ -805,7 +805,7 @@ function newGeneration()
 	
 	pool.generation = pool.generation + 1
 	
-	writeFile("backup." .. pool.generation .. "." .. forms.gettext(saveLoadFile))
+	writeFile("backup." .. pool.generation .. ".genFitness.pool")
 end
 	
 function initializePool()
@@ -1028,12 +1028,12 @@ function writeFile(filename)
 		f:close()
 		os.remove(forms.gettext(botState) .. "/backups/delete.me")
 	end
-	assert( table.save( pool.species, "tmp/temp.species.lua" ) == nil )
+	assert( table.save( pool.species, "tmp/temp.species.table" ) == nil )
 	if filename == "temp.pool" then
 		filename = "tmp/temp.pool"
 	else
 		filename = forms.gettext(botState) .. "/backups/" .. filename
-		assert( table.save( pool.species, forms.gettext(botState) .. "/backups/backup." .. pool.generation .. "." .. "species" ) == nil )
+		assert( table.save( pool.species, forms.gettext(botState) .. "/backups/backup." .. pool.generation .. "." .. "species.table" ) == nil )
 	end
 	local file = io.open(filename, "w")
 	file:write(pool.generation .. "\n")
@@ -1044,7 +1044,7 @@ end
 function saveFile(filename)
 	os.execute( "mkdir " .. forms.gettext(botState) .. "\\" )
 	dofile("saveTable.lua")
-	assert( table.save( pool.species, forms.gettext(botState) .. "/species.lua" ) == nil )
+	assert( table.save( pool.species, forms.gettext(botState) .. "/species.table" ) == nil )
 	local file = io.open(forms.gettext(botState) .. "/" .. filename, "w")
 	file:write(pool.generation .. "\n")
 	file:write(pool.maxFitness .. "\n")
@@ -1052,7 +1052,7 @@ function saveFile(filename)
 end
 
 function savePool()
-	local filename = forms.gettext(saveLoadFile)
+	local filename = "genFitness.pool"
 	saveFile(filename)
 end
 
@@ -1063,7 +1063,7 @@ function loadFile(filename)
 	pool.generation = file:read("*number")
 	pool.maxFitness = file:read("*number")
 	forms.settext(maxFitnessLabel, "Max Fitness: " .. math.floor(pool.maxFitness))
-	local species,err = table.load( forms.gettext(botState) .. "/species.lua" )
+	local species,err = table.load( forms.gettext(botState) .. "/species.table" )
 	assert( err == nil )
 	pool.species = species
 	for n,species in pairs(pool.species) do
@@ -1086,8 +1086,52 @@ function loadFile(filename)
 end
  
 function loadPool()
-	local filename = forms.gettext(saveLoadFile)
+	local filename = "genFitness.pool"
 	loadFile(filename)
+end
+
+function loadBackup()
+	dofile("saveTable.lua")
+	local nmbr = 0
+	local file = 0
+	local untilNil = 0
+	while file ~= nil do
+		file = io.open(forms.gettext(botState) .. "/backups/backup." .. nmbr .. ".genFitness.pool", "r")
+		if file ~= nil then
+			file:close()
+			untilNil = 1
+		elseif untilNil == 0 then
+			file = 0
+		end
+		nmbr = nmbr + 1
+	end
+	nmbr = nmbr - 2
+	print(nmbr)
+	file = io.open(forms.gettext(botState) .. "/backups/backup." .. nmbr .. ".genFitness.pool", "r")
+	pool = newPool()
+	pool.generation = file:read("*number")
+	pool.maxFitness = file:read("*number")
+	forms.settext(maxFitnessLabel, "Max Fitness: " .. math.floor(pool.maxFitness))
+	local species,err = table.load( forms.gettext(botState) .. "/backups/backup." .. nmbr .. ".species.table" )
+	assert( err == nil )
+	pool.species = species
+	for n,species in pairs(pool.species) do
+		for m,genome in pairs(species.genomes) do
+			for l,gene in pairs(genome.genes) do
+				if(gene.enabled) then
+					gene.enabled = false
+				else
+					gene.enabled = true
+				end
+			end
+		end
+	end
+	file:close()
+	while fitnessAlreadyMeasured() do
+		nextGenome()
+	end
+	initializeRun()
+	pool.currentFrame = pool.currentFrame + 1
 end
 
 function playTop()
@@ -1135,26 +1179,31 @@ event.onexit(onExit)
 firstStart = true
 runAI = false
 
-form = forms.newform(250, 310, "Fitness")
+form = forms.newform(250, 335, "Fitness")
 maxFitnessLabel = forms.label(form, "Max Fitness: " .. math.floor(pool.maxFitness), 5, 8)
-showNetwork = forms.checkbox(form, "Show Map", 5, 30)
-showMutationRates = forms.checkbox(form, "Show M-Rates", 5, 52)
-startButton = forms.button(form, "Start/Stop", startPool, 5, 77)
-restartButton = forms.button(form, "Restart", initializePool, 80, 77)
-saveButton = forms.button(form, "Save", savePool, 5, 102)
-loadButton = forms.button(form, "Load", loadPool, 80, 102)
-saveLoadFile = forms.textbox(form, Filename .. ".pool", 170, 25, nil, 5, 148)
-saveLoadLabel = forms.label(form, "Save/Load:", 5, 129)
+showNetwork = forms.checkbox(form, "Show Map", 6, 30)
+showMutationRates = forms.checkbox(form, "Show M-Rates", 6, 52)
+startButton = forms.button(form, "Start", startPool, 5, 77)
+restartButton = forms.button(form, "Restart", initializePool, 5, 102)
+saveButton = forms.button(form, "Save", savePool, 154, 77)
+loadButton = forms.button(form, "Load", loadPool, 154, 102)
+saveLoadFile = forms.textbox(form, Filename, 149, 25, nil, 6, 148)
+saveLoadLabel = forms.label(form, "Save State File:", 5, 132)
 playTopButton = forms.button(form, "Play Top", playTop, 5, 170)
-hideBanner = forms.checkbox(form, "Hide Banner", 5, 190)
-botStateLabel = forms.label(form, "Bot Number:", 5, 219)
+hideBanner = forms.checkbox(form, "Hide Banner", 6, 190)
+loadBackupButton = forms.button(form, "Load Backup", loadBackup, 144, 267) --71, 265
 botStates = {["a"]="01",["b"]="02",["c"]="03",["d"]="04",["e"]="05",["f"]="06",["g"]="07",["h"]="08",["i"]="09",["j"]="10"}
-botState = forms.dropdown(form, botStates, 5, 244, 170, 25)
+botState = forms.dropdown(form, botStates, 6, 268, 64, 25)
+botStateLabel = forms.label(form, "Bot Number:", 5, 252)
+forms.setsize(loadBackupButton, 85, 23)
 
 while true do
 	local backgroundColor = 0xD0FFFFFF
 	if not forms.ischecked(hideBanner) then
 		gui.drawBox(0, 0, 300, 26, backgroundColor, backgroundColor)
+	end
+	if not (tostring(forms.gettext(saveLoadFile)) == Filename) then
+		Filename = tostring(forms.gettext(saveLoadFile))
 	end
 	if runAI == true then
 		local species = pool.species[pool.currentSpecies]
@@ -1163,7 +1212,11 @@ while true do
 		if forms.ischecked(showNetwork) then
 			displayGenome(genome)
 		end
-		
+
+		if forms.gettext(startButton) == "Start" then
+			forms.settext(startButton, "Stop")
+		end
+
 		if pool.currentFrame%5 == 0 then
 			evaluateCurrent()
 		end
@@ -1196,7 +1249,7 @@ while true do
 			if fitness > pool.maxFitness then
 				pool.maxFitness = fitness
 				forms.settext(maxFitnessLabel, "Max Fitness: " .. math.floor(pool.maxFitness))
-				writeFile("backup." .. pool.generation .. "." .. forms.gettext(saveLoadFile))
+				writeFile("backup." .. pool.generation .. ".genFitness.pool")
 			end
 			
 			console.writeline("Gen " .. pool.generation .. " species " .. pool.currentSpecies .. " genome " .. pool.currentGenome .. " fitness: " .. fitness)
@@ -1225,6 +1278,10 @@ while true do
 		end
 			
 		pool.currentFrame = pool.currentFrame + 1
+	else
+		if forms.gettext(startButton) == "Stop" then
+			forms.settext(startButton, "Start")
+		end
 	end
 	emu.frameadvance();
 end
