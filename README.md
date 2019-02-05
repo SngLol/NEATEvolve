@@ -3,7 +3,7 @@
 MarI/O by SethBling - With working, more effective, save and load functions
 
 The original MarI/O by SethBling over at https://pastebin.com/ZZmSNaHX crashes everytime you try to load your bot state.
-So I decided to lear some lua and make a more efficient save and load function.
+So I decided to learn some lua and make a more efficient save and load function.
 It now saves the whole pool.species table in a file called species.lua,
 but still uses the original save file for some other small but important values.
 
